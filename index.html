@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocket Welder Helper</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de Fuente (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Iconos (Ionicons) -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f5; /* bg-zinc-100 - Fondo de app "helper" */
+        }
+        /* Simula el contenedor de un teléfono */
+        .phone-container {
+            max-width: 450px;
+            margin: 1.5rem auto;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid #e4e4e7;
+        }
+
+        /* Oculta los módulos por defecto */
+        .module-content {
+            display: none;
+        }
+        /* Estilos para el modal */
+        #results-modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* Estilos de formulario */
+        .form-label {
+            @apply block text-sm font-medium text-gray-700 mb-1;
+        }
+        .form-input, .form-select {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm;
+        }
+        
+        /* Estilos Tarjetas de Menú (Modo "Toolbox") */
+        .menu-card {
+            @apply bg-white rounded-xl shadow-md p-5 flex items-center space-x-4 cursor-pointer
+                   border border-gray-200 hover:border-blue-500 hover:shadow-lg
+                   transition-all duration-200 ease-in-out;
+        }
+        .menu-card-icon {
+            @apply text-4xl text-blue-600 bg-blue-50 p-3 rounded-lg;
+        }
+        .menu-card-title {
+            @apply text-base font-bold text-gray-800;
+        }
+        .menu-card-desc {
+            @apply text-sm text-gray-500;
+        }
+
+        /* Estilos de Reporte (Tabla M1) */
+        .results-table {
+            @apply w-full text-left border-collapse mt-4;
+        }
+        .results-table th, .results-table td {
+            @apply p-3 border-b border-gray-200;
+        }
+        .results-table th {
+            @apply text-xs font-semibold text-gray-500 uppercase bg-gray-50;
+        }
+        .results-table td {
+            @apply text-sm text-gray-800;
+        }
+        .results-table td:first-child {
+            @apply font-medium;
+        }
+        .results-table tr:last-child td {
+            @apply border-b-0;
+        }
+
+        /* Estilos para el Loader */
+        #loader-overlay {
+            @apply fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300;
+        }
+        .loader {
+            @apply w-12 h-12 border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full animate-spin;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Overlay de Carga Global -->
+    <div id="loader-overlay" class="modal-hidden">
+        <div class="loader"></div>
+    </div>
+
+    <div class="phone-container">
+        
+        <!-- Encabezado de la Aplicación (Temática Pocket Helper) -->
+        <header class="bg-blue-600 text-white p-5">
+            <div class="flex items-center space-x-3">
+                <!-- Icono de "Toolbox" o "Apps" -->
+                <ion-icon name="grid-outline" class="text-4xl"></ion-icon>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold">Pocket Welder Helper</h1>
+                    <h2 class="text-sm font-light text-blue-100">Asistente Digital de Herramientas</h2>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenedor Principal de la App -->
+        <main id="app-container" class="p-5 md:p-6">
+
+            <!-- Menú Principal (Estado Inicial) -->
+            <section id="main-menu" class="module-content">
+                <h3 class="text-lg font-bold text-gray-900 mb-5">Caja de Herramientas Digital</h3>
+                
+                <div class="space-y-4">
+                    
+                    <!-- Módulo 1: Ajustes -->
+                    <div id="btn-module1" class="menu-card">
+                        <ion-icon name="options-outline" class="menu-card-icon"></ion-icon>
+                        <div>
+                            <h4 class="menu-card-title">Ajustes de Soldadura</h4>
+                            <p class="menu-card-desc">Parámetros (A, V, $V_f$) para MIG, TIG, SMAW.</p>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 2: Peso y Diseño (RESTORED) -->
+                    <div id="btn-module2" class="menu-card">
+                        <ion-icon name="cube-outline" class="menu-card-icon"></ion-icon>
+                        <div>
+                            <h4 class="menu-card-title">Calculadora de Peso y Diseño</h4>
+                            <p class="menu-card-desc">Calcular peso de material y geometría.</p>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 3: Presupuestos (RESTORED) -->
+                    <div id="btn-module3" class="menu-card">
+                        <ion-icon name="cash-outline" class="menu-card-icon"></ion-icon>
+                        <div>
+                            <h4 class="menu-card-title">Generador de Presupuestos</h4>
+                            <p class="menu-card-desc">Estimación de costos de proyecto.</p>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 4 (NUEVO): Analizador de Defectos IA -->
+                    <div id="btn-module4" class="menu-card">
+                        <ion-icon name="bug-outline" class="menu-card-icon"></ion-icon>
+                        <div>
+                            <h4 class="menu-card-title">🔬 Analizador de Defectos (IA)</h4>
+                            <p class="menu-card-desc">Diagnosticar problemas y defectos de soldadura.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+            <!-- Contenedor de Módulo (Reutilizable) -->
+            <div id="module-container" class="module-content">
+                <button onclick="showModule('main-menu')" class="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center">
+                    <ion-icon name="chevron-back-outline" class="mr-1"></ion-icon>
+                    Volver al Menú
+                </button>
+                <h3 id="module-title" class="text-2xl font-bold text-gray-900 mb-5"></h3>
+                
+                <!-- Contenido específico de cada módulo se inyecta aquí -->
+                <div id="module-body"></div>
+            </div>
+
+        </main>
+
+        <!-- Pie de Página -->
+        <footer class="bg-gray-800 text-gray-400 p-5 text-xs text-center">
+            <p class="font-semibold text-gray-200">Pocket Welder Helper</p>
+            <p class="mt-1">
+                Herramientas para soldar más fácil, rápido e inteligente.
+            </p>
+        </footer>
+    </div>
+
+    <!-- Modal de Resultados (Genérico) -->
+    <div id="results-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60">
+        <div class="relative w-full max-w-lg bg-white rounded-lg shadow-xl overflow-hidden">
+            <!-- Encabezado del Modal -->
+            <div id="results-header" class="flex justify-between items-center p-5 bg-gray-50 border-b border-gray-200">
+                <h3 id="results-title" class="text-lg font-semibold text-gray-900"></h3>
+                <button onclick="hideResults()" class="text-gray-400 hover:text-gray-600">
+                    <ion-icon name="close-outline" class="text-3xl"></ion-icon>
+                </button>
+            </div>
+            
+            <!-- Contenido del Modal -->
+            <div id="results-content" class="p-6 max-h-[70vh] overflow-y-auto text-gray-700">
+                <!-- El contenido se inyectará aquí -->
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                <!-- Simulación de "Guardar en Favoritos" -->
+                <button class="flex items-center space-x-2 py-2 px-3 rounded-md text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none">
+                    <ion-icon name="star-outline"></ion-icon>
+                    <span>Guardar en Favoritos</span>
+                </button>
+                <button onclick="hideResults()" class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Referencias de UI ---
+        const allModules = document.querySelectorAll('.module-content');
+        const moduleContainer = document.getElementById('module-container');
+        const moduleTitle = document.getElementById('module-title');
+        const moduleBody = document.getElementById('module-body');
+        
+        // Modal
+        const resultsModal = document.getElementById('results-modal');
+        const resultsHeader = document.getElementById('results-header');
+        const resultsTitle = document.getElementById('results-title');
+        const resultsContent = document.getElementById('results-content');
+        
+        // Densidades (g/cm^3)
+        const DENSITIES = {
+            'acero': 7.85,
+            'inox': 8.0,
+            'aluminio': 2.7
+        };
+
+        /**
+         * Muestra un módulo específico.
+         */
+        function showModule(moduleId, title = "") {
+            allModules.forEach(module => {
+                if (module) module.style.display = 'none';
+            });
+            
+            if (moduleId === 'main-menu') {
+                document.getElementById('main-menu').style.display = 'block';
+            } else {
+                moduleContainer.style.display = 'block';
+                moduleTitle.innerText = title;
+                loadModuleContent(moduleId);
+            }
+        }
+        
+        /**
+         * Carga el HTML del formulario para el módulo seleccionado.
+         */
+        function loadModuleContent(moduleId) {
+            let content = '';
+            if (moduleId === 'module1') {
+                content = `
+                    <form id="form-module1" class="space-y-4">
+                        <p class="text-sm text-gray-500">Seleccione los parámetros para obtener una sugerencia de ajuste.</p>
+                        <div>
+                            <label for="m1-proceso" class="form-label">Proceso</label>
+                            <select id="m1-proceso" class="form-select" required>
+                                <option value="mig">MIG/MAG (GMAW)</option>
+                                <option value="tig">TIG (GTAW)</option>
+                                <option value="smaw">Electrodo (SMAW)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div>
+                                <label for="m1-material" class="form-label">Material Base</label>
+                                <select id="m1-material" class="form-select" required>
+                                    <option value="acero">Acero al Carbono</option>
+                                    <option value="inox">Acero Inoxidable</option>
+                                    <option value="aluminio">Aluminio</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="m1-espesor" class="form-label">Espesor (e)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.5" id="m1-espesor" class="form-input pr-10" value="3" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="m1-diametro" class="form-label">Diámetro Consumible (Ø)</label>
+                            <div class="relative">
+                                <input type="number" step="0.1" id="m1-diametro" class="form-input pr-10" value="1.0" required>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">mm</span>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                ✨ Obtener Ajustes (IA)
+                            </button>
+                        </div>
+                    </form>
+                `;
+            } 
+            else if (moduleId === 'module2') {
+                // (Restaurado)
+                content = `
+                    <p class="text-sm text-gray-500 mb-5">Seleccione el tipo de cálculo que desea realizar:</p>
+                    <div class="space-y-4">
+                        <div id="btn-module2a" class="menu-card">
+                            <ion-icon name="beaker-outline" class="menu-card-icon"></ion-icon>
+                            <div>
+                                <h4 class="menu-card-title">a) Calcular Peso de Material</h4>
+                                <p class="menu-card-desc">Estimar el peso de placas, tubos o flejes.</p>
+                            </div>
+                        </div>
+                        <div id="btn-module2b" class="menu-card">
+                            <ion-icon name="shapes-outline" class="menu-card-icon"></ion-icon>
+                            <div>
+                                <h4 class="menu-card-title">b) Calcular Geometría de Soldadura</h4>
+                                <p class="menu-card-desc">Longitud de cordón requerida para una carga.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } 
+            else if (moduleId === 'module3') {
+                // (Restaurado)
+                content = `
+                    <form id="form-module3" class="space-y-4">
+                        <p class="text-sm text-gray-500">Estime los costos principales de un proyecto de soldadura.</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="m3-masa" class="form-label">Masa de Consumible (M)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" id="m3-masa" class="form-input pr-10" value="15" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">kg</span>
+                                </div>
+                            </div>
+                             <div>
+                                <label for="m3-dr" class="form-label">Tasa Deposición (DR)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" id="m3-dr" class="form-input pr-12" value="2.5" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">kg/h</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="m3-costo-mat" class="form-label">Costo Material</label>
+                                <div class="relative">
+                                    <input type="number" step="0.01" id="m3-costo-mat" class="form-input pr-10" value="12.50" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">$/kg</span>
+                                </div>
+                            </div>
+                             <div>
+                                <label for="m3-costo-mano" class="form-label">Costo Mano de Obra</label>
+                                <div class="relative">
+                                    <input type="number" step="0.01" id="m3-costo-mano" class="form-input pr-10" value="30.00" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">$/h</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                Generar Presupuesto
+                            </button>
+                        </div>
+                    </form>
+                `;
+            }
+            else if (moduleId === 'module4') {
+                // Módulo 4 (NUEVO)
+                title = "Analizador de Defectos (IA)";
+                content = `
+                    <form id="form-module4" class="space-y-4">
+                        <p class="text-sm text-gray-500">Describe el defecto de soldadura que estás experimentando para obtener un análisis de causas y soluciones.</p>
+                        <div>
+                            <label for="m4-proceso" class="form-label">Proceso (Ej: MIG, TIG)</label>
+                            <input type="text" id="m4-proceso" class="form-input" placeholder="Ej: MIG" required>
+                        </div>
+                        <div>
+                            <label for="m4-material" class="form-label">Material (Ej: Aluminio, Acero Inox)</label>
+                            <input type="text" id="m4-material" class="form-input" placeholder="Ej: Aluminio 5083" required>
+                        </div>
+                        <div>
+                            <label for="m4-defecto" class="form-label">Describe el Problema/Defecto</label>
+                            <textarea id="m4-defecto" rows="4" class="form-input" placeholder="Ej: Mucha porosidad en la superficie del cordón, el arco es inestable." required></textarea>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                🔬 Analizar Defecto
+                            </button>
+                        </div>
+                    </form>
+                `;
+            }
+            moduleBody.innerHTML = content;
+            // Añadir listeners a los nuevos formularios/botones
+            attachFormListeners(moduleId);
+        }
+
+        /**
+         * Carga los sub-módulos del Módulo 2.
+         */
+        function loadModule2Sub(subModuleId) {
+            let content = '';
+            let title = '';
+
+            if (subModuleId === 'm2a') {
+                title = "Calcular Peso de Material";
+                content = `
+                    <form id="form-module2a" class="space-y-4">
+                        <div>
+                            <label for="m2a-material" class="form-label">Tipo de Material</label>
+                            <select id="m2a-material" class="form-select" required>
+                                <option value="acero">Acero al Carbono (7.85 g/cm³)</option>
+                                <option value="inox">Acero Inoxidable (8.0 g/cm³)</option>
+                                <option value="aluminio">Aluminio (2.7 g/cm³)</option>
+                            </select>
+                        </div>
+                        <p class="form-label pt-2 border-t border-gray-200">Dimensiones (en Milímetros)</p>
+                        <div class="grid grid-cols-3 gap-3">
+                             <div>
+                                <label for="m2a-largo" class="form-label">Largo (L)</label>
+                                <input type="number" id="m2a-largo" class="form-input" value="1000" required>
+                            </div>
+                             <div>
+                                <label for="m2a-ancho" class="form-label">Ancho (W)</label>
+                                <input type="number" id="m2a-ancho" class="form-input" value="500" required>
+                            </div>
+                            <div>
+                                <label for="m2a-espesor" class="form-label">Espesor (e)</label>
+                                <input type="number" id="m2a-espesor" class="form-input" value="10" required>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">Nota: Para tubos, ingrese Diámetro Exterior en 'Largo', Diámetro Interior en 'Ancho' y Longitud en 'Espesor'. La app detectará el cálculo.</p>
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                Calcular Peso
+                            </button>
+                        </div>
+                    </form>
+                `;
+            } else if (subModuleId === 'm2b') {
+                title = "Geometría de Soldadura (Filete)";
+                content = `
+                    <form id="form-module2b" class="space-y-4">
+                        <p class="text-sm text-gray-500">Calcular la longitud de filete requerida para soportar una carga.</p>
+                        <div>
+                            <label for="m2b-carga" class="form-label">Carga Aplicada (P)</label>
+                            <div class="relative">
+                                <input type="number" step="0.1" id="m2b-carga" class="form-input pr-10" value="50" required>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">kN</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="m2b-pierna" class="form-label">Tamaño de Pierna (a)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.1" id="m2b-pierna" class="form-input pr-10" value="6" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">mm</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="m2b-fu" class="form-label">Resist. Electrodo ($F_u$)</label>
+                                <div class="relative">
+                                    <input type="number" id="m2b-fu" class="form-input pr-12" value="483" required>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm">MPa</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                Calcular Longitud
+                            </button>
+                        </div>
+                    </form>
+                `;
+            }
+            
+            moduleTitle.innerText = title;
+            moduleBody.innerHTML = content;
+            // Adjuntar listeners específicos para los nuevos formularios
+            if (subModuleId === 'm2a') {
+                document.getElementById('form-module2a').addEventListener('submit', handleModule2a_Weight);
+            }
+            if (subModuleId === 'm2b') {
+                document.getElementById('form-module2b').addEventListener('submit', handleModule2b_Geometry);
+            }
+        }
+
+        /**
+         * Muestra el modal de resultados.
+         */
+        function showResults(title, htmlContent, headerClass = 'bg-gray-50 border-gray-200') {
+            resultsTitle.innerText = title;
+            resultsContent.innerHTML = htmlContent;
+            resultsHeader.className = 'flex justify-between items-center p-5 border-b';
+            headerClass.split(' ').forEach(cls => resultsHeader.classList.add(cls));
+            resultsModal.classList.remove('modal-hidden');
+            resultsModal.classList.add('modal-visible');
+        }
+
+        /**
+         * Oculta el modal de resultados.
+         */
+        function hideResults() {
+            resultsModal.classList.add('modal-hidden');
+            resultsModal.classList.remove('modal-visible');
+        }
+
+        /**
+         * Adjunta los event listeners a los formularios/botones de los módulos.
+         */
+        function attachFormListeners(moduleId) {
+            if (moduleId === 'module1') {
+                document.getElementById('form-module1').addEventListener('submit', handleModule1);
+            }
+            if (moduleId === 'module2') {
+                document.getElementById('btn-module2a').addEventListener('click', () => loadModule2Sub('m2a'));
+                document.getElementById('btn-module2b').addEventListener('click', () => loadModule2Sub('m2b'));
+            }
+            if (moduleId === 'module3') {
+                // (Restaurado)
+                document.getElementById('form-module3').addEventListener('submit', handleModule3);
+            }
+            if (moduleId === 'module4') {
+                document.getElementById('form-module4').addEventListener('submit', handleModule4);
+            }
+        }
+
+        // --- Lógica de Manejo de Módulos ---
+
+        // Funciones de Loader Global
+        const loaderOverlay = document.getElementById('loader-overlay');
+        function showLoading() {
+            loaderOverlay.classList.remove('modal-hidden');
+            loaderOverlay.classList.add('modal-visible');
+        }
+        function hideLoading() {
+            loaderOverlay.classList.add('modal-hidden');
+            loaderOverlay.classList.remove('modal-visible');
+        }
+
+        /**
+         * Función reutilizable para llamar a la API de Gemini.
+         */
+        async function callGemini(systemPrompt, userPrompt) {
+            showLoading();
+            const apiKey = ""; // Dejar vacío, se proveerá en el entorno.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error de API: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    let errorMessage = "Respuesta no válida de la IA.";
+                    if (result.candidates && result.candidates[0].finishReason === 'SAFETY') {
+                        errorMessage = "Respuesta bloqueada por razones de seguridad.";
+                    }
+                    throw new Error(errorMessage);
+                }
+
+            } catch (error) {
+                console.error("Error llamando a Gemini:", error);
+                hideLoading();
+                return `Error: No se pudo obtener la respuesta de la IA. ${error.message}`;
+            }
+        }
+
+
+        /**
+         * MÓDULO 1: Ajustes de Soldadura (MODIFICADO con IA).
+         */
+        async function handleModule1(event) {
+            event.preventDefault();
+            const proceso = document.getElementById('m1-proceso').value;
+            const material = document.getElementById('m1-material').value;
+            const e = parseFloat(document.getElementById('m1-espesor').value);
+            const dia = parseFloat(document.getElementById('m1-diametro').value);
+            
+            // Mostrar modal con loader
+            const loadingHtml = `
+                <div class="flex flex-col items-center justify-center p-4">
+                    <div class="loader"></div>
+                    <p class="text-gray-600 mt-4">Consultando al experto en soldadura...</p>
+                </div>
+            `;
+            showResults('✨ Ajustes Sugeridos (IA)', loadingHtml);
+
+            // Preparar Prompts para Gemini
+            const systemPrompt = `Actúa como un maestro soldador e ingeniero (CWI). Proporciona una recomendación de parámetros de soldadura. Responde EXCLUSIVAMENTE en este formato de texto plano (sin markdown, sin títulos extra):
+Corriente: [rango A]
+Voltaje: [rango V]
+Alim. Alambre: [rango m/min o N/A]
+Gas/Ref: [tipo y L/min o tipo de electrodo]
+Consejo: [consejo profesional clave de 1-2 frases]`;
+            
+            const userPrompt = `Proceso: ${proceso}, Material: ${material}, Espesor: ${e} mm, Diámetro: ${dia} mm`;
+
+            // Llamar a la IA
+            const iaResponse = await callGemini(systemPrompt, userPrompt);
+
+            // Mostrar resultado
+            const reportHtml = `
+                <p class="text-sm text-gray-600 mb-4">Ajustes sugeridos por IA para <strong>${proceso.toUpperCase()}</strong> en <strong>${material}</strong> de <strong>${e} mm</strong>.</p>
+                <pre class="text-sm text-gray-800 bg-gray-50 p-4 rounded-md whitespace-pre-wrap">${iaResponse}</pre>
+                <p class="text-xs text-gray-500 mt-4">*Estos son rangos de partida generados por IA. Realice pruebas en material de sacrificio para afinar el ajuste.</p>
+            `;
+            
+            // Actualizar el contenido del modal (sin ocultarlo y volverlo a mostrar)
+            resultsTitle.innerText = '✨ Ajustes Sugeridos (IA)';
+            resultsContent.innerHTML = reportHtml;
+        }
+
+        /**
+         * Función Auxiliar para M1: (YA NO SE USA, REEMPLAZADA POR IA)
+         * function getWeldSettings(proceso, material, e, dia) { ... }
+         */
+        
+        /**
+         * MÓDULO 2a: Cálculo de Peso.
+         */
+        function handleModule2a_Weight(event) {
+            event.preventDefault();
+            const mat = document.getElementById('m2a-material').value;
+            const l_mm = parseFloat(document.getElementById('m2a-largo').value);
+            const w_mm = parseFloat(document.getElementById('m2a-ancho').value);
+            const e_mm = parseFloat(document.getElementById('m2a-espesor').value);
+            const density = DENSITIES[mat];
+            
+            let vol_cm3 = 0;
+            let masa_kg = 0;
+            let calc_type = "Placa";
+
+            // Lógica simple para detectar si es tubo (si Ancho < Largo)
+            if (w_mm < l_mm) {
+                calc_type = "Tubo";
+                // L = D. Ext, W = D. Int, E = Longitud
+                const d_ext_cm = l_mm / 10;
+                const d_int_cm = w_mm / 10;
+                const len_cm = e_mm / 10;
+                const area_cm2 = (Math.PI * (Math.pow(d_ext_cm, 2) - Math.pow(d_int_cm, 2))) / 4;
+                vol_cm3 = area_cm2 * len_cm;
+            } else {
+                // Cálculo de Placa/Fleje
+                vol_cm3 = (l_mm * w_mm * e_mm) / 1000;
+            }
+            
+            masa_kg = (vol_cm3 * density) / 1000;
+            
+            const reportHtml = `
+                <p class="text-sm">Cálculo de peso para: <strong>${calc_type} de ${mat}</strong>.</p>
+                <div class="text-center bg-gray-50 p-6 rounded-lg my-4">
+                    <span class="text-base font-medium text-gray-600">Masa Total Estimada</span>
+                    <p class="text-5xl font-extrabold text-blue-600">${masa_kg.toFixed(2)}</p>
+                    <span class="text-lg font-medium text-gray-800">Kilogramos (kg)</span>
+                </div>
+                <div class="text-xs text-gray-500">
+                    <p><strong>Densidad Usada:</strong> ${density} g/cm³</p>
+                    <p><strong>Volumen Calculado:</strong> ${vol_cm3.toFixed(1)} cm³</p>
+                </div>
+            `;
+            showResults('Cálculo de Peso de Material', reportHtml);
+        }
+
+        function handleModule3(event) {
+            event.preventDefault();
+            const M_kg = parseFloat(document.getElementById('m3-masa').value);
+            const DR_kg_h = parseFloat(document.getElementById('m3-dr').value);
+            const C_mat_kg = parseFloat(document.getElementById('m3-costo-mat').value);
+            const C_mano_h = parseFloat(document.getElementById('m3-costo-mano').value);
+
+            const T_neto_h = M_kg / DR_kg_h;
+            const C_mat_total = M_kg * C_mat_kg;
+            const C_mano_total = T_neto_h * C_mano_h;
+            const C_total = C_mat_total + C_mano_total;
+
+            const reportHtml = `
+                <p class="text-sm text-gray-600 mb-4">Estimación de costos basada en <strong>${M_kg} kg</strong> de consumible y una tasa de <strong>${DR_kg_h} kg/h</strong>.</p>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
+                        <span class="font-medium text-gray-700">Tiempo de Soldadura Neto:</span>
+                        <span class="font-bold text-lg text-gray-900">${T_neto_h.toFixed(2)} horas</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3">
+                        <span class="font-medium text-gray-700">Costo de Material Estimado:</span>
+                        <span class="font-bold text-lg text-gray-900">$${C_mat_total.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3">
+                        <span class="font-medium text-gray-700">Costo de Mano de Obra Estimado:</span>
+                        <span class="font-bold text-lg text-gray-900">$${C_mano_total.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-blue-50 border-t-2 border-blue-200 rounded-b-lg">
+                        <span class="font-bold text-blue-800 text-lg">PRESUPUESTO TOTAL:</span>
+                        <span class="font-extrabold text-2xl text-blue-700">$${C_total.toFixed(2)}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">*No incluye costos de gas, energía, pre/post-proceso o factor de operación (arc-on time).</p>
+            `;
+            
+            showResults('Resumen de Costos del Proyecto', reportHtml);
+        }
+
+        /**
+         * MÓDULO 2b: Cálculo de Geometría.
+         */
+        // (Restaurado)
+        function handleModule2b_Geometry(event) {
+            event.preventDefault();
+            const P_kn = parseFloat(document.getElementById('m2b-carga').value); // kN
+            const a_mm = parseFloat(document.getElementById('m2b-pierna').value); // mm
+            const Fu_mpa = parseFloat(document.getElementById('m2b-fu').value); // MPa (N/mm^2)
+
+            // Invertir la fórmula de Weld Design (M1) para encontrar L
+            // Ra = ( (a * 0.707) * L * Fu * 0.60 ) / (eta * 1000)
+            // Asumimos que la Carga Aplicada (P) ES la Carga Admisible (Ra) y eta=3.0
+            const P_n = P_kn * 1000 * 3.0; // Carga Nominal en Newtons (con FS=3)
+            const t_mm = a_mm * 0.707;
+            const resist_per_mm = t_mm * (Fu_mpa * 0.60); // N/mm
+            
+            const L_req_mm = P_n / resist_per_mm;
+            
+             const reportHtml = `
+                <p class="text-sm">Longitud de filete (a=${a_mm}mm) requerida para soportar ${P_kn} kN (con FS=3.0).</p>
+                <div class="text-center bg-gray-50 p-6 rounded-lg my-4">
+                    <span class="text-base font-medium text-gray-600">Longitud Mínima Requerida (L)</span>
+                    <p class="text-5xl font-extrabold text-blue-600">${L_req_mm.toFixed(1)}</p>
+                    <span class="text-lg font-medium text-gray-800">Milímetros (mm)</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">*Este cálculo asume una carga estática y un Factor de Seguridad (FS) de 3.0. Verifique con ingeniería.</p>
+            `;
+            showResults('Cálculo de Geometría de Filete', reportHtml);
+        }
+        
+        /**
+         * MÓDULO 3: Generador de Presupuestos.
+         */
+        // (Restaurado)
+        function handleModule3(event) {
+            event.preventDefault();
+            const M_kg = parseFloat(document.getElementById('m3-masa').value);
+            const DR_kg_h = parseFloat(document.getElementById('m3-dr').value);
+            const C_mat_kg = parseFloat(document.getElementById('m3-costo-mat').value);
+            const C_mano_h = parseFloat(document.getElementById('m3-costo-mano').value);
+
+            const T_neto_h = M_kg / DR_kg_h;
+            const C_mat_total = M_kg * C_mat_kg;
+            const C_mano_total = T_neto_h * C_mano_h;
+            const C_total = C_mat_total + C_mano_total;
+
+            const reportHtml = `
+                <p class="text-sm text-gray-600 mb-4">Estimación de costos basada en <strong>${M_kg} kg</strong> de consumible y una tasa de <strong>${DR_kg_h} kg/h</strong>.</p>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
+                        <span class="font-medium text-gray-700">Tiempo de Soldadura Neto:</span>
+                        <span class="font-bold text-lg text-gray-900">${T_neto_h.toFixed(2)} horas</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3">
+                        <span class="font-medium text-gray-700">Costo de Material Estimado:</span>
+                        <span class="font-bold text-lg text-gray-900">$${C_mat_total.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3">
+                        <span class="font-medium text-gray-700">Costo de Mano de Obra Estimado:</span>
+                        <span class="font-bold text-lg text-gray-900">$${C_mano_total.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-blue-50 border-t-2 border-blue-200 rounded-b-lg">
+                        <span class="font-bold text-blue-800 text-lg">PRESUPUESTO TOTAL:</span>
+                        <span class="font-extrabold text-2xl text-blue-700">$${C_total.toFixed(2)}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">*No incluye costos de gas, energía, pre/post-proceso o factor de operación (arc-on time).</p>
+            `;
+            
+            showResults('Resumen de Costos del Proyecto', reportHtml);
+        }
+
+        /**
+         * MÓDULO 4: Analizador de Defectos (NUEVO).
+         */
+        async function handleModule4(event) {
+            event.preventDefault();
+            const proceso = document.getElementById('m4-proceso').value;
+            const material = document.getElementById('m4-material').value;
+            const defecto = document.getElementById('m4-defecto').value;
+
+            // Mostrar modal con loader
+            const loadingHtml = `
+                <div class="flex flex-col items-center justify-center p-4">
+                    <div class="loader"></div>
+                    <p class="text-gray-600 mt-4">Analizando el defecto...</p>
+                </div>
+            `;
+            showResults('🔬 Análisis de Defecto (IA)', loadingHtml);
+
+            // Preparar Prompts para Gemini
+            const systemPrompt = "Actúa como un Inspector de Soldadura (CWI) experto y un solucionador de problemas. El usuario describirá un defecto. Explica las causas más probables y las soluciones/correcciones de forma clara y concisa. Estructura tu respuesta en 'Causas Probables:' y 'Soluciones Recomendadas:'. Responde en texto plano.";
+            
+            const userPrompt = `Proceso: ${proceso}\nMaterial: ${material}\nDefecto: ${defecto}`;
+
+            // Llamar a la IA
+            const iaResponse = await callGemini(systemPrompt, userPrompt);
+
+            // Mostrar resultado
+            const reportHtml = `
+                <p class="text-sm text-gray-600 mb-4">Análisis de IA para: <strong>${defecto.substring(0, 40)}...</strong></p>
+                <div class="text-sm text-gray-800 bg-gray-50 p-4 rounded-md space-y-3">
+                    <pre class="whitespace-pre-wrap font-sans">${iaResponse}</pre>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">*Esta información es una guía generada por IA y no reemplaza una inspección formal.</p>
+            `;
+            
+            // Actualizar el contenido del modal
+            resultsTitle.innerText = '🔬 Análisis de Defecto (IA)';
+            resultsContent.innerHTML = reportHtml;
+        }
+
+        // --- Inicialización y Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mostrar menú principal al inicio
+            showModule('main-menu');
+            
+            // Listeners del Menú
+            document.getElementById('btn-module1').addEventListener('click', () => showModule('module1', 'Ajustes de Soldadura'));
+            // (Restaurados)
+            document.getElementById('btn-module2').addEventListener('click', () => showModule('module2', 'Calculadora de Peso y Diseño'));
+            document.getElementById('btn-module3').addEventListener('click', () => showModule('module3', 'Generador de Presupuestos'));
+            document.getElementById('btn-module4').addEventListener('click', () => showModule('module4', 'Analizador de Defectos (IA)'));
+
+            // Listener para cerrar modal haciendo clic fuera
+            resultsModal.addEventListener('click', (e) => {
+                if (e.target === resultsModal) hideResults();
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
